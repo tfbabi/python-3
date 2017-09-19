@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from utility import logger
 
 #数据库连接
-DB_CONN_STRING = 'oracle://bdata:bdata@10.148.180.115:1521/dhouse'
+DB_CONN_STRING = 'oracle://trsenzhang:trsenzhang@192.168.56.112:1521/db'
 
 import datetime
 days = 1
