@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Created on Tue Dec 27 14:36:05 2016
 以terminal_info表为基础来做扩展
-@author: mzhang
+@author: trsenzhang
 """
 
 from sqlalchemy import create_engine
@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from utility import logger
 
 #数据库连接
-DB_CONN_STRING = 'oracle://trsenzhang:trsenzhang@192.168.56.112:1521/db'
+DB_CONN_STRING = 'oracle://trsenzhang:trsenzhang@10.10.10.10:1521/db'
 
 import datetime
 days = 1
@@ -34,7 +34,8 @@ CONF_LOAN_RATE_INFO={
         '0.2%保底0.3元	':'4',
         '0.3元一笔':'5',
         '0.16%':'6',
-        '0.513%':'7'
+        '0.513%':'7',
+        '0.450%':'8'
         }
 
 '''
