@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Created on Tue Dec 27 14:36:05 2016
 以terminal_info表为基础来做扩展
-@author: mzhang
+@author: trsenzhang
 """
 
 import os 
@@ -13,9 +13,8 @@ import gc
 from mail import Mail
 import time
 
-#from matplotlib.pyplot import axis 
 import datetime
-from anaRateConf import CONF_ORDER_TIME,DB_CONN_STRING
+from anaRateConf import CONF_ORDER_TIME,DB_CONN_STRING,CONF_ORDER_TIME1,CONF_ORDER_TIME2
 from anaRateConf import CONF_RATE_ALIAES_NAME,CONF_LOAN_RATE_INFO,CONF_BORROW_RATE_INFO
 from utility import logger
 from pandas import Series, DataFrame
@@ -64,9 +63,56 @@ def saveToExcel(df):
     excel.to_excel(fileName)
     #df.to_csv(fileName)
 
+
+def getRateCostInfo():
+    sql = '''SELECT   o.ORDER_NO,
+                      o.trans_charge_rate,
+                      o.trans_address_province,
+                      o.trans_address_city,
+                      o.trans_address_county,
+                      o.product_name,
+                      o.backend_id,
+                      o.product_oem,
+                      o.trans_time,
+                      o.accounttranstime,
+                      BIG_MERCH_NUMBER,
+                      FROM_CARD_TYPE,
+                       PAY_AMOUNT,
+                       TRANS_CHARGE,
+                       O.MERCH_NAME,
+                       R_BORROW,
+                       R_LOAN,
+                       R_YINLIAN,
+                       CHANNEL_NAME,
+                       TYPE,
+                       AREA_32,
+                       BEIZHU,
+                       '' COST,
+                       '' GRAIN
+                  FROM BDATA.ORDERS O, BDATA.RATE L
+                 WHERE O.BIG_MERCH_NUMBER = L.MERCH_NO(+)
+                   AND O.TRANS_STATUS = '交易成功'
+                   AND O.ACCOUNTTRANSTIME = to_char(%s, 'yyyymmdd')
+                   AND O.BACKEND_ID in('posPay','unionIcCardPay')
+                   AND o.trans_time >= to_char(%s, 'yyyymmdd') || '000000' and o.Trans_Time < to_char(%s, 'yyyymmdd') || '235959'
+            ''' % (CONF_ORDER_TIME,CONF_ORDER_TIME2,CONF_ORDER_TIME1)
+    engine = create_engine(DB_CONN_STRING,poolclass=NullPool)
+    return pd.read_sql_query(sql,engine)
+
+"""   
 #获取有卡信息并且是827
 def getRateCostInfo827():
-    sql = '''SELECT   BIG_MERCH_NUMBER,
+    sql = '''SELECT   o.ORDER_NO,
+                      o.trans_charge_rate,
+                      o.trans_address_province,
+                      o.trans_address_city,
+                      o.trans_address_county,
+                      o.product_name,
+                      o.backend_id,
+                      o.product_oem,
+                      o.trans_time,
+                      o.accounttranstime,
+                      BIG_MERCH_NUMBER,
                       FROM_CARD_TYPE,
                        PAY_AMOUNT,
                        TRANS_CHARGE,
@@ -86,36 +132,46 @@ def getRateCostInfo827():
                    AND O.ACCOUNTTRANSTIME = to_char(%s, 'yyyymmdd')
                    AND O.BACKEND_ID = 'posPay'
                    AND o.trans_time >= to_char(%s, 'yyyymmdd') || '000000' and o.Trans_Time < to_char(%s, 'yyyymmdd') || '235959'
-            ''' % (CONF_ORDER_TIME,CONF_ORDER_TIME,CONF_ORDER_TIME)
+            ''' % (CONF_ORDER_TIME,CONF_ORDER_TIME2,CONF_ORDER_TIME1)
     engine = create_engine(DB_CONN_STRING,poolclass=NullPool)
     return pd.read_sql_query(sql,engine)
 
 #获取有且并且是853开头的信息
 def getRateCostInfo853():
-        sql = '''SELECT   BIG_MERCH_NUMBER,
-                      FROM_CARD_TYPE,
-                       PAY_AMOUNT,
-                       TRANS_CHARGE,
-                       O.MERCH_NAME,
-                       R_BORROW,
-                       R_LOAN,
-                       R_YINLIAN,
-                       CHANNEL_NAME,
-                       TYPE,
-                       AREA_32,
-                       BEIZHU,
-                       '' COST,
-                       '' GRAIN
+        sql = '''SELECT   o.ORDER_NO,
+                          o.trans_charge_rate,
+                          o.trans_address_province,
+                          o.trans_address_city,
+                          o.trans_address_county,
+                          o.product_name,
+                          o.backend_id,
+                          o.product_oem,
+                          o.trans_time,
+                          o.accounttranstime,
+                          BIG_MERCH_NUMBER,
+                          FROM_CARD_TYPE,
+                           PAY_AMOUNT,
+                           TRANS_CHARGE,
+                           O.MERCH_NAME,
+                           R_BORROW,
+                           R_LOAN,
+                           R_YINLIAN,
+                           CHANNEL_NAME,
+                           TYPE,
+                           AREA_32,
+                           BEIZHU,
+                           '' COST,
+                           '' GRAIN
                   from bdata.orders o, bdata.rate l
                  where o.big_merch_number = l.merch_no(+)
                    and o.trans_status = '交易成功'
                    and o.accounttranstime = to_char(%s, 'yyyymmdd')
                    and o.backend_id = 'unionIcCardPay'
                    and o.trans_time >= to_char(%s, 'yyyymmdd') || '000000' and o.Trans_Time < to_char(%s, 'yyyymmdd') || '235959'
-        ''' % (CONF_ORDER_TIME,CONF_ORDER_TIME,CONF_ORDER_TIME)
+        ''' % (CONF_ORDER_TIME,CONF_ORDER_TIME2,CONF_ORDER_TIME1)
         engine = create_engine(DB_CONN_STRING,poolclass=NullPool)
         return pd.read_sql_query(sql,engine)
-
+"""
 '''利用FROM_CARD_TYPE字段来分片
 贷记卡
 准贷记卡
@@ -134,6 +190,10 @@ def getRateCostInfo853():
 0.309%-13.68	成本=金额*0.309%，若大于13.68则取13.68
 0.16%	         成本=金额*0.16%			
 0.35%13元封顶  	发卡=金额*0.35%，若大于13则取13
+
+0.32%-13.5	成本=金额*0.32%，若大于13.5则取13.5
+0.4%-17	成本=金额*0.4%，若大于17则取17
+0.03%	成本=金额*0.03%
 '''
 
 def OptBorrowCost(r_borrow,pay_amount):
@@ -189,6 +249,20 @@ def OptBorrowCost(r_borrow,pay_amount):
             return 13
         else:
             return ct
+    if CONF_BORROW_RATE_INFO.get(r_borrow) == '11':
+        ct = (0.32 * float(pay_amount) ) / 100
+        if ct > 13.5:
+            return 13.5
+        else:
+            return ct
+    if CONF_BORROW_RATE_INFO.get(r_borrow) == '12':
+        ct = (0.4 * float(pay_amount) ) / 100
+        if ct > 17:
+            return 17
+        else:
+            return ct
+    if CONF_BORROW_RATE_INFO.get(r_borrow) == '13':
+        return (0.03 * float(pay_amount) ) / 100
     else:
         #error:说明借费率不在CONF_BORROW_RATE_INFO文件中或者费率导入时的格式不符合
         return 'berror'
@@ -202,7 +276,11 @@ def OptBorrowCost(r_borrow,pay_amount):
 0.3元一笔	      每笔成本都是0.3元一笔		
 0.16%	         成本=金额*0.16%			
 0.513%	      成本=金额*0.513%	
-0.450%--银联的一个费率		
+0.450%--银联的一个费率	
+
+0.52%	成本=金额*0.52%
+0.03%	成本=金额*0.03%
+0.51%	成本=金额*0.51%	
 '''
 def OptLoanCost(r_loan,pay_amount):
     if CONF_LOAN_RATE_INFO.get(r_loan) == '1':
@@ -229,6 +307,15 @@ def OptLoanCost(r_loan,pay_amount):
         return ct
     if CONF_LOAN_RATE_INFO.get(r_loan) == '8':
         ct = (0.450 * float(pay_amount) ) / 100
+        return ct   
+    if CONF_LOAN_RATE_INFO.get(r_loan) == '9':
+        ct = (0.52 * float(pay_amount) ) / 100
+        return ct
+    if CONF_LOAN_RATE_INFO.get(r_loan) == '10':
+        ct = (0.03 * float(pay_amount) ) / 100
+        return ct
+    if CONF_LOAN_RATE_INFO.get(r_loan) == '11':
+        ct = (0.51 * float(pay_amount) ) / 100
         return ct
     else:
         #errorl:说明贷费率不在CONF_BORROW_RATE_INFO文件中或者费率导入时的格式不符合
@@ -239,7 +326,7 @@ def OptLoanCost(r_loan,pay_amount):
 0.0325%3.25元封顶	成本=金额*0.0325%，若大于3.25则取3.25	
 '''
 def OptYinLianCost(r_loan,r_borrow,pay_amount,flag):
-    if(str(OptBorrowCost(r_borrow,pay_amount))=='berror' or str(OptLoanCost(r_loan,pay_amount)) =='lerror' ):
+    if(str(OptBorrowCost(r_borrow,pay_amount))=='berror' or str(OptLoanCost(r_loan,pay_amount)) =='lerror'):
         #返回这个错误说明了在进行银联的借贷计算时出现了费率不在借贷配置表里或者格式不对的错误
         return 'yerror'
     else:
@@ -263,28 +350,40 @@ def OptGrain(trans_charge,cost):
         return 'gerror'
     else:
         return float(trans_charge) - float(cost)      
-     
-if __name__ == '__main__':
-    logger.info('开始')
-    # 加载数据 
-    logger.info('827成本处理  开始')
-    rate = getRateCostInfo827()
-    rate_1 = rate[rate.from_card_type=='借记卡']
-    rate_1['cost'] = rate_1.apply(lambda row: OptBorrowCost(row['r_borrow'],row['pay_amount']), axis=1)
-    rate_2 = rate[(rate.from_card_type=='准贷记卡') | (rate.from_card_type=='贷记卡')]
+
+'''
+如果开类型为-那么就进行判断
+'''
+def otpGetCardType(from_card_type):
+    if(from_card_type == '-'):
+       ####说明卡类型有问题，请核实卡类型是否有相关类型
+        return 'terror'
+
+def getHaveCardData():
+    logger.info('成本处理 开始')
+    rate1 = getRateCostInfo()
+    rate_1 = rate1[((rate1.from_card_type=='借记卡') | (rate1.from_card_type=='借贷合一') | (rate1.from_card_type=='预付卡')) & (rate1.backend_id=='posPay')]  
+    rate_2 = rate1[((rate1.from_card_type=='准贷记卡') | (rate1.from_card_type=='贷记卡')) & (rate1.backend_id=='posPay')]
+    rate_1['cost'] = rate_1.apply(lambda row: OptBorrowCost(row['r_borrow'],row['pay_amount']), axis=1) 
     rate_2['cost'] = rate_2.apply(lambda row: OptLoanCost(row['r_loan'],row['pay_amount']), axis=1)
-    logger.info('完成了827有卡成本处理 : %s 行.' % (rate_1.shape[0] + rate_2.shape[0]))
+    logger.info('827开头的有卡数据处理 : %s 行.' % (rate_1.shape[0] + rate_2.shape[0]))
     
-    logger.info('853成本处理 开始')
-    rate1 = getRateCostInfo853()
-    rate1_1 = rate1[rate1.from_card_type=='借记卡']
-    rate1_2 = rate1[(rate1.from_card_type=='准贷记卡') | (rate1.from_card_type=='贷记卡')]
-    rate1_1['cost'] = rate1_1.apply(lambda row: OptYinLianCost(row['r_loan'],row['r_borrow'],row['pay_amount'],'borrow'), axis=1)
+    rate1_1 = rate1[((rate1.from_card_type=='借记卡') | (rate1.from_card_type=='借贷合一') | (rate1.from_card_type=='预付卡')) & (rate1.backend_id=='unionIcCardPay')]
+    rate1_2 = rate1[((rate1.from_card_type=='准贷记卡') | (rate1.from_card_type=='贷记卡')) & (rate1.backend_id=='unionIcCardPay')]
+    rate1_1['cost'] = rate1_1.apply(lambda row: OptYinLianCost(row['r_loan'],row['r_borrow'],row['pay_amount'],'borrow'), axis=1)    
     rate1_2['cost'] = rate1_2.apply(lambda row: OptYinLianCost(row['r_loan'],row['r_borrow'],row['pay_amount'],'loan'), axis=1)
-    logger.info('完成了853有卡成本处理 : %s 行.' % (rate1_1.shape[0] + rate1_2.shape[0]))
+    logger.info('853开头的有卡数据处理 : %s 行.' % (rate1_1.shape[0] + rate1_2.shape[0]))
     
+    if(rate1[rate1.from_card_type=='-'].empty):
+        logger.info('银行卡类型记录无异常 : 0 行')
+        df = [rate_1,rate_2,rate1_1,rate1_2]
+    else:
+        rate2_1 = rate1[rate1.from_card_type=='-']
+        rate2_1['cost'] = rate2_1.apply(lambda row: otpGetCardType(row['from_card_type']), axis=1)
+        logger.info('无银行卡类型 : %s 行.' % rate2_1.shape[0])
+        df = [rate_1,rate_2,rate1_1,rate1_2,rate2_1]
+        
     logger.info('合并数据 开始')
-    df = [rate_1,rate_2,rate1_1,rate1_2]
     rate2 = pd.concat(df)
     logger.info('完成了所有有卡成本处理 : %s 行.' % (rate2.shape[0]))
     gc.collect()
@@ -293,8 +392,37 @@ if __name__ == '__main__':
     logger.info('利润计算 开始')
     rate2['grain'] = rate2.apply(lambda row: OptGrain(row['trans_charge'],row['cost']), axis=1)
     logger.info('利润计算处理 : %s 行.' % (rate2.shape[0]))
+    return rate2
+
+if __name__ == '__main__':
+    logger.info('开始')
+    # 加载有卡数据
+    rate2 = getHaveCardData()
+    '''
+    AND O.BACKEND_ID = 'posPay'
+    and o.backend_id = 'unionIcCardPay'
+    '''
+    """
+    logger.info('827成本处理  开始')
+    rate = getRateCostInfo827()
+    rate_1 = rate[(rate.from_card_type=='借记卡') | (rate.from_card_type=='借贷合一') | (rate.from_card_type=='预付卡')]
+    rate_1['cost'] = rate_1.apply(lambda row: OptBorrowCost(row['r_borrow'],row['pay_amount']), axis=1)
+    rate_2 = rate[(rate.from_card_type=='准贷记卡') | (rate.from_card_type=='贷记卡')]
+    rate_2['cost'] = rate_2.apply(lambda row: OptLoanCost(row['r_loan'],row['pay_amount']), axis=1)
+    logger.info('完成了827有卡成本处理 : %s 行.' % (rate_1.shape[0] + rate_2.shape[0]))
     
+    logger.info('853成本处理 开始')
+    rate1 = getRateCostInfo853()
+    rate1_1 = rate1[(rate1.from_card_type=='借记卡') | (rate1.from_card_type=='借贷合一') | (rate1.from_card_type=='预付卡')]
+    rate1_2 = rate1[(rate1.from_card_type=='准贷记卡') | (rate1.from_card_type=='贷记卡')]
+    rate1_1['cost'] = rate1_1.apply(lambda row: OptYinLianCost(row['r_loan'],row['r_borrow'],row['pay_amount'],'borrow'), axis=1)
+    rate1_2['cost'] = rate1_2.apply(lambda row: OptYinLianCost(row['r_loan'],row['r_borrow'],row['pay_amount'],'loan'), axis=1)
+    logger.info('完成了853有卡成本处理 : %s 行.' % (rate1_1.shape[0] + rate1_2.shape[0]))
+    """
+       
     logger.info('生成excel文件，开始')
-    saveToExcel(rate2) 
+    saveToExcel(rate2)
+    #engine = create_engine(DB_CONN_STRING,poolclass=NullPool)
+    #rate2.to_sql('cost_analay',engine,flavor=None, schema=None, if_exists='replace', chunksize=100, dtype=None)
     logger.info('生成execl文件,结束')
     
