@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Created on Tue Dec 27 14:36:05 2016
 以terminal_info表为基础来做扩展
@@ -9,8 +9,12 @@ from sqlalchemy import create_engine
 #日志对象
 from utility import logger
 
+#邮件信息
+mail_to = ['xxx']
+port = "125"
+
 #数据库连接
-DB_CONN_STRING = 'oracle://trsenzhang:trsenzhang@10.10.10.10:1521/db'
+DB_CONN_STRING = 'oracle://test:test@10.10.10.10:1600/duse'
 
 import datetime
 days = 1

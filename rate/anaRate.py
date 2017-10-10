@@ -12,11 +12,15 @@ import sys
 import gc
 from mail import Mail
 import time
+import zipfile
+import socket
+import shutil
 
 import datetime
 from anaRateConf import CONF_ORDER_TIME,DB_CONN_STRING,CONF_ORDER_TIME1,CONF_ORDER_TIME2
 from anaRateConf import CONF_RATE_ALIAES_NAME,CONF_LOAN_RATE_INFO,CONF_BORROW_RATE_INFO
 from utility import logger
+from anaRateConf import mail_to,port
 from pandas import Series, DataFrame
 from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
@@ -41,9 +45,13 @@ def saveToExcel(df):
     #target_date = now - oneday
     target_date = now - oneday + oneday
     target_date = target_date.strftime("%Y%m%d")
+       
+    shutil.rmtree('%s/report' % CUR_PATH)
+    logger.info('删除报表数据目录,完成') 
+    
     if not os.path.exists('%s/report' % CUR_PATH):
         os.mkdir('%s/report' % CUR_PATH)
-    fileName = '%s/report/Orders-%s.xlsx' % (CUR_PATH,target_date)
+    fileName = '%s/report/anaRate-%s.xlsx' % (CUR_PATH,target_date)
     report_col_dict = {} 
     for k, v in CONF_RATE_ALIAES_NAME.items():
         report_col_dict[k.lower()] = v    
@@ -62,7 +70,67 @@ def saveToExcel(df):
         os.remove(fileName)
     excel.to_excel(fileName)
     #df.to_csv(fileName)
+    
+def createZip(filename,srcDirectory):
+ ''' 创建压缩文件 '''
+ zip=zipfile.ZipFile(filename,'w', zipfile.ZIP_DEFLATED) 
+ os.chdir(srcDirectory)
+ for r, d, fs in os.walk(srcDirectory):
+  for f in fs:
+   #print f
+   zip.write(os.path.basename(f))
+ zip.close()
 
+def getAttachFileList(srcDirectory):
+ '''获取附件列表'''
+ os.chdir(srcDirectory)
+ fl=[]
+ for r, d, fs in os.walk(srcDirectory):
+  for f in fs:
+   #print f
+   fl.append(os.path.abspath(f))
+ return fl
+
+'''邮件发送'''
+def sendMailInfo():
+    import re
+    now = datetime.datetime.now()
+    m=re.match('.*(\d+)',CONF_ORDER_TIME)
+    days = 1
+    if m:
+        days = int(m.groups()[0])
+    oneday = datetime.timedelta(days=days)
+    target_date = now - oneday + oneday
+    target_date = target_date.strftime("%Y%m%d")
+        
+    zipDirectory = os.path.join(os.path.abspath(os.path.dirname(__file__)),'zipDir')
+    if not os.path.exists(zipDirectory):
+      os.mkdir(zipDirectory) 
+      logger.info('临时目录不存在创建临时目录:'+zipDirectory)
+    zipfileName=os.path.join(zipDirectory,'anaRate_'+target_date+'.zip')
+    
+    if os.path.exists(zipfileName):
+      os.remove(zipfileName) 
+      logger.info('存在相同压缩文件名，删除历史数据:'+zipfileName)
+    logger.info('创建压缩文件:'+zipfileName)
+    
+    if not os.path.exists('%s/report' % CUR_PATH):
+       os.mkdir('%s/report' % CUR_PATH)
+    fileDirectory = '%s/report' % CUR_PATH
+    os.chdir(fileDirectory)
+    os.system(("zip %s *")%(zipfileName))
+    createZip(zipfileName,fileDirectory)
+    files=getAttachFileList(fileDirectory)
+    print files
+    logger.info('压缩结束')
+  
+    m=Mail(port=port,mailTo=mail_to)
+    try:
+        subject='anaRate报表'
+        content='When the REPORT has problems, please contact DBA!'
+        m.sendMsg(subject,content,[zipfileName])
+    except:
+        return
 
 def getRateCostInfo():
     sql = '''SELECT   o.ORDER_NO,
@@ -341,9 +409,15 @@ def getHaveCardData():
 if __name__ == '__main__':
     logger.info('开始')
     # 加载有卡数据
-    rate2 = getHaveCardData()
+    rate2 = getHaveCardData()    
        
     logger.info('生成excel文件，开始')
     saveToExcel(rate2)
     logger.info('生成execl文件,结束')
+    
+    logger.info('打包并发送数据,开始')
+    sendMailInfo()
+    logger.info('打包并发送数据,结束')
+      
+    
     

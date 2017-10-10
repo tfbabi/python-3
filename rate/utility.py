@@ -1,14 +1,14 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Created on Mon Sep 12 13:14:09 2016
 
-@author: trsenzhang
+@author: mzhang
 """
 
 import logging
 import logging.config
-
-
+import zipfile
+import os 
 
 # logging
 logging.config.fileConfig("logging.conf")
@@ -32,6 +32,30 @@ BS = 16
 pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
 unpad = lambda s : s[0:-ord(s[-1])]
 key = 'xxxxx'
+
+
+
+class zipOpt:
+    def createZip(filename,srcDirectory):
+        ''' 创建压缩文件 '''
+        zip=zipfile.ZipFile(filename,'w', zipfile.ZIP_DEFLATED) 
+        os.chdir(srcDirectory)
+        for r, d, fs in os.walk(srcDirectory):
+            for f in fs:
+                #print f
+                zip.write(os.path.basename(f))
+            zip.close()
+
+def getAttachFileList(srcDirectory):
+    '''获取附件列表'''
+    os.chdir(srcDirectory)
+    fl=[]
+    for r, d, fs in os.walk(srcDirectory):
+        for f in fs:
+   #print f
+          fl.append(os.path.abspath(f))
+    return fl
+
 
 class AESCipher:
     def __init__(self):

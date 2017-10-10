@@ -16,7 +16,7 @@ from email.MIMEText import MIMEText
 
 class Mail(object):
  """邮件"""
- host = 'mail.99wuxian.com'
+ host = 'xxxx'
  port = ''
  user = ''
  psd = ''
@@ -28,23 +28,25 @@ class Mail(object):
  <head><title>''' + subject + '''</title></HEAD>
  <body><span style='cursor=hand'><B>HTML文本</B></span></html>
   '''
- def __init__(self, host='xxx.oracle.com', port='123', user='trsenzhang', psd='trsenzhang', mailFrom='xx.oracle.com.cn', mailTo=['xxx@oracle.com.cn']):
+ def __init__(self, host='xxx', port='125', user='xxx', psd='xx!', mailFrom='xx@xx.com.cn', mailTo=['x.xx@xx.com.cn']):
   ipadd=socket.gethostbyname(host)
   self.port = port
-
   self.host = host
   self.user = user
   self.psd = psd
   self.fromAdd = mailFrom
   self.toAdds = mailTo
   self.port = port
+  #sendEmail(authInfo, fromAdd, toAdd, subject, plainText, htmlText)
   
+ #def sendMsg(self, subject, msg, attachment_file=None, _login='true'):
  def sendMsg(self, subject, msg, attachment_file=None, _login='false'):
   server = self.host 
   user = self.user
   psd = self.psd
   mailto = ';'.join(self.toAdds)
-
+  #print mailto
+  #print self.fromAdd
   msgRoot = MIMEMultipart('related')
   msgRoot['Subject'] = subject
   msgRoot['From'] = '系统监测<' + self.fromAdd + '>'
